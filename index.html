@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Puerto Vallarta Weather</title>
+    <style>
+        :root {
+            --primary-blue: #007BFF;
+            --light-blue: #5BC0DE;
+            --orange: #FFA500;
+            --yellow: #FFD700;
+            --green: #228B22;
+            --white: #FFFFFF;
+            --light-gray: #f8f9fa;
+            --text-dark: #333;
+            --text-muted: #666;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--white);
+            color: var(--text-dark);
+            min-height: 100vh;
+        }
+
+        .widget-container {
+            max-width: 600px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 20px;
+            background: var(--white);
+        }
+
+        /* Header */
+        .widget-header {
+            text-align: center;
+            padding-bottom: 12px;
+            border-bottom: 3px solid var(--light-blue);
+            margin-bottom: 20px;
+        }
+
+        .widget-header h1 {
+            font-size: 1.4rem;
+            color: var(--primary-blue);
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .widget-header .location-icon {
+            color: var(--orange);
+            margin-right: 6px;
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--light-gray);
+            border-top-color: var(--primary-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 12px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Error State */
+        .error {
+            text-align: center;
+            padding: 20px;
+            color: #dc3545;
+            background: #fff5f5;
+            border-radius: 8px;
+        }
+
+        /* Current Weather */
+        .current-weather {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, #0056b3 100%);
+            border-radius: 16px;
+            padding: 24px 30px;
+            color: var(--white);
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .current-weather::before {
+            content: '';
+            position: absolute;
+            top: -30px;
+            right: -30px;
+            width: 140px;
+            height: 140px;
+            background: var(--yellow);
+            border-radius: 50%;
+            opacity: 0.15;
+        }
+
+        .current-main {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .current-temp {
+            font-size: 4.5rem;
+            font-weight: 300;
+            line-height: 1;
+        }
+
+        .current-temp sup {
+            font-size: 1.8rem;
+            vertical-align: super;
+        }
+
+        .current-condition {
+            text-align: right;
+        }
+
+        .current-condition img {
+            width: 80px;
+            height: 80px;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+        }
+
+        .current-condition-text {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-top: 4px;
+        }
+
+        .current-details {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .detail-item {
+            text-align: center;
+        }
+
+        .detail-icon {
+            font-size: 1.4rem;
+            margin-bottom: 6px;
+        }
+
+        .detail-value {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .detail-label {
+            font-size: 0.75rem;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Today's High/Low */
+        .today-highlow {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            background: var(--light-gray);
+            border-radius: 12px;
+            padding: 16px 24px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--light-blue);
+        }
+
+        .highlow-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .highlow-icon {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .highlow-icon.high {
+            color: var(--orange);
+        }
+
+        .highlow-icon.low {
+            color: var(--light-blue);
+        }
+
+        .highlow-temp {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .highlow-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Forecast Section */
+        .forecast-section {
+            margin-top: 12px;
+        }
+
+        .forecast-header {
+            font-size: 1rem;
+            color: var(--primary-blue);
+            font-weight: 600;
+            margin-bottom: 16px;
+            padding-left: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .forecast-header::before {
+            content: '';
+            width: 4px;
+            height: 18px;
+            background: var(--orange);
+            border-radius: 2px;
+        }
+
+        .forecast-list {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+        }
+
+        .forecast-day {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 14px 8px;
+            background: var(--light-gray);
+            border-radius: 12px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-align: center;
+        }
+
+        .forecast-day:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 12px rgba(0,123,255,0.2);
+            background: var(--white);
+            border: 2px solid var(--light-blue);
+        }
+
+        .forecast-day-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-dark);
+            margin-bottom: 4px;
+        }
+
+        .forecast-day-date {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .forecast-icon {
+            width: 48px;
+            height: 48px;
+            margin: 8px 0;
+        }
+
+        .forecast-condition {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            min-height: 28px;
+            display: flex;
+            align-items: center;
+        }
+
+        .forecast-temps {
+            text-align: center;
+        }
+
+        .forecast-high {
+            font-weight: 700;
+            color: var(--orange);
+            font-size: 1.1rem;
+        }
+
+        .forecast-low {
+            color: var(--light-blue);
+            font-size: 0.9rem;
+            margin-top: 2px;
+        }
+
+        /* Footer */
+        .widget-footer {
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 2px solid var(--light-gray);
+            text-align: center;
+        }
+
+        .last-updated {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .powered-by {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+
+        .powered-by a {
+            color: var(--light-blue);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .powered-by a:hover {
+            color: var(--primary-blue);
+        }
+
+        /* Responsive adjustments for tablets */
+        @media (max-width: 620px) {
+            .widget-container {
+                padding: 16px;
+            }
+
+            .forecast-list {
+                grid-template-columns: repeat(4, 1fr);
+            }
+
+            .forecast-day:nth-child(n+5) {
+                grid-column: span 1;
+            }
+        }
+
+        /* Responsive adjustments for mobile */
+        @media (max-width: 480px) {
+            .widget-container {
+                padding: 14px;
+            }
+
+            .widget-header h1 {
+                font-size: 1.1rem;
+            }
+
+            .current-weather {
+                padding: 18px;
+            }
+
+            .current-temp {
+                font-size: 3.2rem;
+            }
+
+            .current-temp sup {
+                font-size: 1.4rem;
+            }
+
+            .current-condition img {
+                width: 60px;
+                height: 60px;
+            }
+
+            .current-condition-text {
+                font-size: 0.95rem;
+            }
+
+            .current-details {
+                gap: 10px;
+            }
+
+            .detail-icon {
+                font-size: 1.2rem;
+            }
+
+            .detail-value {
+                font-size: 1rem;
+            }
+
+            .detail-label {
+                font-size: 0.65rem;
+            }
+
+            .today-highlow {
+                gap: 24px;
+                padding: 12px 16px;
+            }
+
+            .highlow-temp {
+                font-size: 1.1rem;
+            }
+
+            .forecast-header {
+                font-size: 0.9rem;
+            }
+
+            .forecast-list {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+
+            .forecast-day {
+                padding: 12px 10px;
+            }
+
+            .forecast-icon {
+                width: 42px;
+                height: 42px;
+            }
+
+            .forecast-condition {
+                font-size: 0.65rem;
+                min-height: 24px;
+            }
+
+            .forecast-high {
+                font-size: 1rem;
+            }
+
+            .forecast-low {
+                font-size: 0.85rem;
+            }
+        }
+
+        /* Small mobile */
+        @media (max-width: 360px) {
+            .widget-container {
+                padding: 12px;
+            }
+
+            .current-temp {
+                font-size: 2.8rem;
+            }
+
+            .current-condition img {
+                width: 52px;
+                height: 52px;
+            }
+
+            .current-weather::before {
+                width: 80px;
+                height: 80px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="widget-container">
+        <header class="widget-header">
+            <h1><span class="location-icon">📍</span>Puerto Vallarta Weather</h1>
+        </header>
+
+        <div id="weather-content">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                <p>Loading weather data...</p>
+            </div>
+        </div>
+
+        <footer class="widget-footer">
+            <p class="last-updated" id="last-updated"></p>
+            <p class="powered-by">Powered by <a href="https://www.weatherapi.com/" target="_blank" rel="noopener">WeatherAPI</a></p>
+        </footer>
+    </div>
+
+    <script>
+        // ============================================
+        // CONFIGURATION - Replace with your API key
+        // ============================================
+        const API_KEY = '7376d4a73d1d47cc82340029262401'; // Get free key at https://weatherapi.com
+        const LOCATION = 'Puerto Vallarta,Mexico';
+        const FORECAST_DAYS = 7;
+        const USE_DEMO_DATA = API_KEY === 'YOUR_API_KEY'; // Auto-enable demo when no key
+
+        // ============================================
+        // Weather API Integration
+        // ============================================
+        const API_URL = `https://api.weatherapi.com/v1/forecast.json?key=${API_KEY}&q=${encodeURIComponent(LOCATION)}&days=${FORECAST_DAYS}&aqi=no`;
+
+        // Demo data for preview (used when no API key is set)
+        function getDemoData() {
+            const today = new Date();
+            const days = [];
+            const conditions = [
+                { text: 'Sunny', icon: '//cdn.weatherapi.com/weather/64x64/day/113.png' },
+                { text: 'Partly cloudy', icon: '//cdn.weatherapi.com/weather/64x64/day/116.png' },
+                { text: 'Cloudy', icon: '//cdn.weatherapi.com/weather/64x64/day/119.png' },
+                { text: 'Light rain', icon: '//cdn.weatherapi.com/weather/64x64/day/296.png' },
+                { text: 'Sunny', icon: '//cdn.weatherapi.com/weather/64x64/day/113.png' },
+                { text: 'Partly cloudy', icon: '//cdn.weatherapi.com/weather/64x64/day/116.png' },
+                { text: 'Sunny', icon: '//cdn.weatherapi.com/weather/64x64/day/113.png' }
+            ];
+            
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(today);
+                date.setDate(today.getDate() + i);
+                days.push({
+                    date: date.toISOString().split('T')[0],
+                    day: {
+                        maxtemp_c: 28 + Math.floor(Math.random() * 6),
+                        mintemp_c: 20 + Math.floor(Math.random() * 4),
+                        condition: conditions[i]
+                    }
+                });
+            }
+            
+            return {
+                current: {
+                    temp_c: 29,
+                    humidity: 72,
+                    wind_kph: 15,
+                    feelslike_c: 32,
+                    condition: {
+                        text: 'Sunny',
+                        icon: '//cdn.weatherapi.com/weather/64x64/day/113.png'
+                    }
+                },
+                forecast: {
+                    forecastday: days
+                }
+            };
+        }
+
+        async function fetchWeather() {
+            // Use demo data if no API key is configured
+            if (USE_DEMO_DATA) {
+                console.log('Demo mode: Using sample data. Add your API key for live weather.');
+                renderWeather(getDemoData());
+                document.getElementById('last-updated').innerHTML = 
+                    '<span style="color: var(--orange);">⚠️ Demo Mode</span> - Add API key for live data';
+                return;
+            }
+            
+            try {
+                const response = await fetch(API_URL);
+                
+                if (!response.ok) {
+                    throw new Error('Weather data unavailable');
+                }
+                
+                const data = await response.json();
+                renderWeather(data);
+            } catch (error) {
+                console.error('Error fetching weather:', error);
+                renderError(error.message);
+            }
+        }
+
+        // ============================================
+        // Render Functions
+        // ============================================
+        function renderWeather(data) {
+            const { current, forecast } = data;
+            const today = forecast.forecastday[0];
+            
+            const html = `
+                <!-- Current Weather -->
+                <div class="current-weather">
+                    <div class="current-main">
+                        <div class="current-temp">
+                            ${Math.round(current.temp_c)}<sup>°C</sup>
+                        </div>
+                        <div class="current-condition">
+                            <img src="https:${current.condition.icon}" alt="${current.condition.text}">
+                            <div class="current-condition-text">${current.condition.text}</div>
+                        </div>
+                    </div>
+                    <div class="current-details">
+                        <div class="detail-item">
+                            <div class="detail-icon">💧</div>
+                            <div class="detail-value">${current.humidity}%</div>
+                            <div class="detail-label">Humidity</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-icon">💨</div>
+                            <div class="detail-value">${Math.round(current.wind_kph)}</div>
+                            <div class="detail-label">Wind km/h</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-icon">🌡️</div>
+                            <div class="detail-value">${Math.round(current.feelslike_c)}°</div>
+                            <div class="detail-label">Feels Like</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Today's High/Low -->
+                <div class="today-highlow">
+                    <div class="highlow-item">
+                        <span class="highlow-icon high">↑</span>
+                        <div>
+                            <div class="highlow-temp">${Math.round(today.day.maxtemp_c)}°C</div>
+                            <div class="highlow-label">High</div>
+                        </div>
+                    </div>
+                    <div class="highlow-item">
+                        <span class="highlow-icon low">↓</span>
+                        <div>
+                            <div class="highlow-temp">${Math.round(today.day.mintemp_c)}°C</div>
+                            <div class="highlow-label">Low</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 7-Day Forecast -->
+                <div class="forecast-section">
+                    <h2 class="forecast-header">7-Day Forecast</h2>
+                    <div class="forecast-list">
+                        ${forecast.forecastday.map((day, index) => {
+                            const date = new Date(day.date);
+                            const dayName = index === 0 ? 'Today' : date.toLocaleDateString('en-US', { weekday: 'short' });
+                            const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                            
+                            return `
+                                <div class="forecast-day">
+                                    <div class="forecast-day-name">
+                                        ${dayName}
+                                        <div class="forecast-day-date">${dateStr}</div>
+                                    </div>
+                                    <img class="forecast-icon" src="https:${day.day.condition.icon}" alt="${day.day.condition.text}">
+                                    <div class="forecast-condition">${day.day.condition.text}</div>
+                                    <div class="forecast-temps">
+                                        <div class="forecast-high">${Math.round(day.day.maxtemp_c)}°</div>
+                                        <div class="forecast-low">${Math.round(day.day.mintemp_c)}°</div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('weather-content').innerHTML = html;
+            
+            // Update timestamp
+            const now = new Date();
+            document.getElementById('last-updated').textContent = 
+                `Last updated: ${now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
+        }
+
+        function renderError(message) {
+            document.getElementById('weather-content').innerHTML = `
+                <div class="error">
+                    <p>⚠️ ${message}</p>
+                    <p style="margin-top: 8px; font-size: 0.8rem;">Please check API key configuration.</p>
+                </div>
+            `;
+        }
+
+        // ============================================
+        // Initialize
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchWeather();
+            
+            // Refresh weather data every 30 minutes
+            setInterval(fetchWeather, 30 * 60 * 1000);
+        });
+    </script>
+</body>
+</html>
