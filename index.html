@@ -53,6 +53,23 @@
             letter-spacing: 0.5px;
         }
 
+        .pvr-datetime {
+            margin-top: 8px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .pvr-time {
+            font-weight: 600;
+            color: var(--primary-blue);
+            font-size: 1.1rem;
+        }
+
+        .pvr-date {
+            color: var(--text-muted);
+            margin-left: 8px;
+        }
+
         .widget-header .location-icon {
             color: var(--orange);
             margin-right: 6px;
@@ -465,6 +482,10 @@
     <div class="widget-container">
         <header class="widget-header">
             <h1><span class="location-icon">📍</span>Puerto Vallarta Weather</h1>
+            <div class="pvr-datetime">
+                <span class="pvr-time" id="pvr-time">--:--</span>
+                <span class="pvr-date" id="pvr-date">---</span>
+            </div>
         </header>
 
         <div id="weather-content">
@@ -667,10 +688,39 @@
         }
 
         // ============================================
+        // Puerto Vallarta Time Display
+        // ============================================
+        function updatePVRTime() {
+            const options = {
+                timeZone: 'America/Mexico_City',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            };
+            const dateOptions = {
+                timeZone: 'America/Mexico_City',
+                weekday: 'long',
+                month: 'short',
+                day: 'numeric'
+            };
+            
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('en-US', options);
+            const dateStr = now.toLocaleDateString('en-US', dateOptions);
+            
+            document.getElementById('pvr-time').textContent = timeStr;
+            document.getElementById('pvr-date').textContent = dateStr;
+        }
+
+        // ============================================
         // Initialize
         // ============================================
         document.addEventListener('DOMContentLoaded', () => {
             fetchWeather();
+            updatePVRTime();
+            
+            // Update time every minute
+            setInterval(updatePVRTime, 60 * 1000);
             
             // Refresh weather data every 30 minutes
             setInterval(fetchWeather, 30 * 60 * 1000);
