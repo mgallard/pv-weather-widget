@@ -53,26 +53,46 @@
             letter-spacing: 0.5px;
         }
 
+        .widget-header .location-icon {
+            color: var(--orange);
+            margin-right: 6px;
+        }
+
+        /* PVR DateTime in blue card */
         .pvr-datetime {
-            margin-top: 8px;
-            font-size: 0.9rem;
-            color: var(--text-muted);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0 16px;
+        }
+
+        .pvr-time-row, .pvr-date-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 4px 0;
+        }
+
+        .pvr-icon {
+            font-size: 1.1rem;
+            opacity: 0.9;
         }
 
         .pvr-time {
             font-weight: 600;
-            color: var(--primary-blue);
-            font-size: 1.1rem;
+            font-size: 1.2rem;
         }
 
         .pvr-date {
-            color: var(--text-muted);
-            margin-left: 8px;
+            font-size: 0.95rem;
+            opacity: 0.9;
         }
 
-        .widget-header .location-icon {
-            color: var(--orange);
-            margin-right: 6px;
+        .pvr-day {
+            font-size: 0.85rem;
+            opacity: 0.8;
+            margin-bottom: 2px;
         }
 
         /* Loading State */
@@ -399,6 +419,22 @@
                 font-size: 0.95rem;
             }
 
+            .pvr-datetime {
+                padding: 0 10px;
+            }
+
+            .pvr-time {
+                font-size: 1rem;
+            }
+
+            .pvr-date {
+                font-size: 0.75rem;
+            }
+
+            .pvr-icon {
+                font-size: 0.9rem;
+            }
+
             .current-details {
                 gap: 10px;
             }
@@ -475,6 +511,22 @@
                 width: 80px;
                 height: 80px;
             }
+
+            .pvr-datetime {
+                padding: 0 6px;
+            }
+
+            .pvr-time {
+                font-size: 0.9rem;
+            }
+
+            .pvr-date {
+                font-size: 0.65rem;
+            }
+
+            .pvr-time-row, .pvr-date-row {
+                gap: 4px;
+            }
         }
     </style>
 </head>
@@ -482,10 +534,6 @@
     <div class="widget-container">
         <header class="widget-header">
             <h1><span class="location-icon">📍</span>Puerto Vallarta Weather</h1>
-            <div class="pvr-datetime">
-                <span class="pvr-time" id="pvr-time">--:--</span>
-                <span class="pvr-date" id="pvr-date">---</span>
-            </div>
         </header>
 
         <div id="weather-content">
@@ -598,6 +646,16 @@
                         <div class="current-temp">
                             ${Math.round(current.temp_c)}<sup>°C</sup>
                         </div>
+                        <div class="pvr-datetime">
+                            <div class="pvr-time-row">
+                                <span class="pvr-icon">🕐</span>
+                                <span class="pvr-time" id="pvr-time">--:--</span>
+                            </div>
+                            <div class="pvr-date-row">
+                                <span class="pvr-icon">📅</span>
+                                <span class="pvr-date" id="pvr-date">---</span>
+                            </div>
+                        </div>
                         <div class="current-condition">
                             <img src="https:${current.condition.icon}" alt="${current.condition.text}">
                             <div class="current-condition-text">${current.condition.text}</div>
@@ -672,6 +730,9 @@
 
             document.getElementById('weather-content').innerHTML = html;
             
+            // Update PVR time display
+            updatePVRTime();
+            
             // Update timestamp
             const now = new Date();
             document.getElementById('last-updated').textContent = 
@@ -691,25 +752,45 @@
         // Puerto Vallarta Time Display
         // ============================================
         function updatePVRTime() {
-            const options = {
+            const timeOptions = {
                 timeZone: 'America/Mexico_City',
                 hour: 'numeric',
                 minute: '2-digit',
                 hour12: true
             };
-            const dateOptions = {
-                timeZone: 'America/Mexico_City',
-                weekday: 'long',
-                month: 'short',
-                day: 'numeric'
-            };
             
             const now = new Date();
-            const timeStr = now.toLocaleTimeString('en-US', options);
-            const dateStr = now.toLocaleDateString('en-US', dateOptions);
             
-            document.getElementById('pvr-time').textContent = timeStr;
-            document.getElementById('pvr-date').textContent = dateStr;
+            // Get PVR time
+            const timeStr = now.toLocaleTimeString('en-US', timeOptions);
+            
+            // Get day of week
+            const dayOfWeek = now.toLocaleDateString('en-US', { 
+                timeZone: 'America/Mexico_City',
+                weekday: 'long' 
+            });
+            
+            // Get date parts for dd/Month/YYYY format
+            const day = now.toLocaleDateString('en-US', { 
+                timeZone: 'America/Mexico_City',
+                day: '2-digit' 
+            });
+            const month = now.toLocaleDateString('en-US', { 
+                timeZone: 'America/Mexico_City',
+                month: 'long' 
+            });
+            const year = now.toLocaleDateString('en-US', { 
+                timeZone: 'America/Mexico_City',
+                year: 'numeric' 
+            });
+            
+            const dateStr = `${dayOfWeek}, ${day}/${month}/${year}`;
+            
+            const timeEl = document.getElementById('pvr-time');
+            const dateEl = document.getElementById('pvr-date');
+            
+            if (timeEl) timeEl.textContent = timeStr;
+            if (dateEl) dateEl.textContent = dateStr;
         }
 
         // ============================================
