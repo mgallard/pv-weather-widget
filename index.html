@@ -624,7 +624,9 @@
                     <h2 class="forecast-header">7-Day Forecast</h2>
                     <div class="forecast-list">
                         ${forecast.forecastday.map((day, index) => {
-                            const date = new Date(day.date);
+                            // Parse date without timezone issues
+                            const [year, month, dayNum] = day.date.split('-').map(Number);
+                            const date = new Date(year, month - 1, dayNum);
                             const dayName = index === 0 ? 'Today' : date.toLocaleDateString('en-US', { weekday: 'short' });
                             const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                             
