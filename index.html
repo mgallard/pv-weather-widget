@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Puerto Vallarta Weather</title>
+    <!-- Google Fonts: Oswald for headers, Poppins for body -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary-blue: #007BFF;
@@ -24,7 +28,7 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: var(--white);
             color: var(--text-dark);
             min-height: 100vh;
@@ -41,16 +45,29 @@
         /* Header */
         .widget-header {
             text-align: center;
-            padding-bottom: 12px;
-            border-bottom: 3px solid var(--light-blue);
+            padding-bottom: 16px;
             margin-bottom: 20px;
+            position: relative;
+        }
+
+        .widget-header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-blue) 0%, var(--light-blue) 50%, var(--orange) 100%);
+            border-radius: 2px;
         }
 
         .widget-header h1 {
-            font-size: 1.4rem;
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.5rem;
             color: var(--primary-blue);
-            font-weight: 700;
-            letter-spacing: 0.5px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
         }
 
         .widget-header .location-icon {
@@ -166,6 +183,38 @@
             vertical-align: super;
         }
 
+        /* Unit Toggle - Pill Style */
+        .unit-toggle {
+            display: inline-flex;
+            background: var(--orange);
+            border-radius: 8px;
+            padding: 4px;
+            margin-top: 10px;
+        }
+
+        .unit-btn {
+            background: transparent;
+            border: none;
+            color: white;
+            padding: 6px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .unit-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .unit-btn.active {
+            background: white;
+            color: var(--orange);
+            font-weight: 600;
+        }
+
         .current-condition {
             text-align: right;
         }
@@ -230,8 +279,15 @@
         }
 
         .highlow-icon {
-            font-size: 1.5rem;
-            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .highlow-icon .lucide {
+            width: 1.5rem;
+            height: 1.5rem;
+            stroke-width: 2.5;
         }
 
         .highlow-icon.high {
@@ -259,14 +315,17 @@
         }
 
         .forecast-header {
-            font-size: 1rem;
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.1rem;
             color: var(--primary-blue);
-            font-weight: 600;
+            font-weight: 500;
             margin-bottom: 16px;
             padding-left: 4px;
             display: flex;
             align-items: center;
             gap: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .forecast-header::before {
@@ -279,8 +338,8 @@
 
         .forecast-list {
             display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 8px;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
         }
 
         .forecast-day {
@@ -302,10 +361,13 @@
         }
 
         .forecast-day-name {
-            font-weight: 600;
-            font-size: 0.9rem;
+            font-family: 'Oswald', sans-serif;
+            font-weight: 500;
+            font-size: 0.95rem;
             color: var(--text-dark);
             margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .forecast-day-date {
@@ -381,10 +443,6 @@
 
             .forecast-list {
                 grid-template-columns: repeat(4, 1fr);
-            }
-
-            .forecast-day:nth-child(n+5) {
-                grid-column: span 1;
             }
         }
 
@@ -528,7 +586,26 @@
                 gap: 4px;
             }
         }
+
+        /* Lucide icon styling */
+        .lucide {
+            width: 1em;
+            height: 1em;
+            vertical-align: middle;
+        }
+
+        .detail-icon .lucide {
+            width: 1.4rem;
+            height: 1.4rem;
+        }
+
+        .pvr-icon .lucide {
+            width: 1.1rem;
+            height: 1.1rem;
+        }
     </style>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 </head>
 <body>
     <div class="widget-container">
@@ -551,19 +628,58 @@
 
     <script>
         // ============================================
-        // CONFIGURATION - Replace with your API key
+        // CONFIGURATION
         // ============================================
-        const API_KEY = '7376d4a73d1d47cc82340029262401'; // Get free key at https://weatherapi.com
         const LOCATION = 'Puerto Vallarta,Mexico';
-        const FORECAST_DAYS = 7;
-        const USE_DEMO_DATA = API_KEY === 'YOUR_API_KEY'; // Auto-enable demo when no key
+        const FORECAST_DAYS = 8;
+        
+        // Unit preference: 'imperial' (°F) or 'metric' (°C)
+        let currentUnit = localStorage.getItem('weatherUnit') || 'imperial';
+        
+        // Store weather data globally for re-rendering on unit change
+        let weatherData = null;
 
         // ============================================
-        // Weather API Integration
+        // Temperature Conversion Utilities
         // ============================================
-        const API_URL = `https://api.weatherapi.com/v1/forecast.json?key=${API_KEY}&q=${encodeURIComponent(LOCATION)}&days=${FORECAST_DAYS}&aqi=no`;
+        function celsiusToFahrenheit(celsius) {
+            return (celsius * 9/5) + 32;
+        }
 
-        // Demo data for preview (used when no API key is set)
+        function formatTemp(tempC, showUnit = true) {
+            if (currentUnit === 'imperial') {
+                const tempF = celsiusToFahrenheit(tempC);
+                return showUnit ? `${Math.round(tempF)}°F` : `${Math.round(tempF)}°`;
+            }
+            return showUnit ? `${Math.round(tempC)}°C` : `${Math.round(tempC)}°`;
+        }
+
+        function formatWind(windKph) {
+            if (currentUnit === 'imperial') {
+                const windMph = windKph * 0.621371;
+                return `${Math.round(windMph)}`;
+            }
+            return `${Math.round(windKph)}`;
+        }
+
+        function getWindUnit() {
+            return currentUnit === 'imperial' ? 'mph' : 'km/h';
+        }
+
+        function toggleUnit(unit) {
+            if (unit === currentUnit) return;
+            currentUnit = unit;
+            localStorage.setItem('weatherUnit', unit);
+            if (weatherData) {
+                renderWeather(weatherData);
+            }
+        }
+
+        // ============================================
+        // Weather Data Fetching (from static JSON)
+        // ============================================
+        
+        // Demo data for local development/preview
         function getDemoData() {
             const today = new Date();
             const days = [];
@@ -574,10 +690,11 @@
                 { text: 'Light rain', icon: '//cdn.weatherapi.com/weather/64x64/day/296.png' },
                 { text: 'Sunny', icon: '//cdn.weatherapi.com/weather/64x64/day/113.png' },
                 { text: 'Partly cloudy', icon: '//cdn.weatherapi.com/weather/64x64/day/116.png' },
-                { text: 'Sunny', icon: '//cdn.weatherapi.com/weather/64x64/day/113.png' }
+                { text: 'Sunny', icon: '//cdn.weatherapi.com/weather/64x64/day/113.png' },
+                { text: 'Partly cloudy', icon: '//cdn.weatherapi.com/weather/64x64/day/116.png' }
             ];
             
-            for (let i = 0; i < 7; i++) {
+            for (let i = 0; i < 8; i++) {
                 const date = new Date(today);
                 date.setDate(today.getDate() + i);
                 days.push({
@@ -593,9 +710,12 @@
             return {
                 current: {
                     temp_c: 29,
+                    temp_f: 84,
                     humidity: 72,
                     wind_kph: 15,
+                    wind_mph: 9,
                     feelslike_c: 32,
+                    feelslike_f: 90,
                     condition: {
                         text: 'Sunny',
                         icon: '//cdn.weatherapi.com/weather/64x64/day/113.png'
@@ -608,27 +728,25 @@
         }
 
         async function fetchWeather() {
-            // Use demo data if no API key is configured
-            if (USE_DEMO_DATA) {
-                console.log('Demo mode: Using sample data. Add your API key for live weather.');
-                renderWeather(getDemoData());
-                document.getElementById('last-updated').innerHTML = 
-                    '<span style="color: var(--orange);">⚠️ Demo Mode</span> - Add API key for live data';
-                return;
-            }
-            
             try {
-                const response = await fetch(API_URL);
+                // Try to fetch from the static JSON file (updated by GitHub Actions)
+                const response = await fetch('weather.json');
                 
                 if (!response.ok) {
                     throw new Error('Weather data unavailable');
                 }
                 
                 const data = await response.json();
+                weatherData = data;
                 renderWeather(data);
             } catch (error) {
-                console.error('Error fetching weather:', error);
-                renderError(error.message);
+                console.log('Using demo data:', error.message);
+                // Fall back to demo data if weather.json doesn't exist yet
+                weatherData = getDemoData();
+                renderWeather(weatherData);
+                document.getElementById('last-updated').innerHTML = 
+                    '<span style="color: var(--orange);"><i data-lucide="alert-triangle" style="width:14px;height:14px;"></i> Demo Mode</span> - Weather data loading...';
+                lucide.createIcons();
             }
         }
 
@@ -639,20 +757,30 @@
             const { current, forecast } = data;
             const today = forecast.forecastday[0];
             
+            // Get unit symbol for display
+            const unitSymbol = currentUnit === 'imperial' ? '°F' : '°C';
+            
             const html = `
                 <!-- Current Weather -->
                 <div class="current-weather">
                     <div class="current-main">
-                        <div class="current-temp">
-                            ${Math.round(current.temp_c)}<sup>°C</sup>
+                        <div>
+                            <div class="current-temp">
+                                ${formatTemp(current.temp_c, false)}<sup>${unitSymbol}</sup>
+                            </div>
+                            <!-- Unit Toggle -->
+                            <div class="unit-toggle">
+                                <button class="unit-btn ${currentUnit === 'imperial' ? 'active' : ''}" onclick="toggleUnit('imperial')">°F</button>
+                                <button class="unit-btn ${currentUnit === 'metric' ? 'active' : ''}" onclick="toggleUnit('metric')">°C</button>
+                            </div>
                         </div>
                         <div class="pvr-datetime">
                             <div class="pvr-time-row">
-                                <span class="pvr-icon">🕐</span>
+                                <span class="pvr-icon"><i data-lucide="clock"></i></span>
                                 <span class="pvr-time" id="pvr-time">--:--</span>
                             </div>
                             <div class="pvr-date-row">
-                                <span class="pvr-icon">📅</span>
+                                <span class="pvr-icon"><i data-lucide="calendar-days"></i></span>
                                 <span class="pvr-date" id="pvr-date">---</span>
                             </div>
                         </div>
@@ -663,18 +791,18 @@
                     </div>
                     <div class="current-details">
                         <div class="detail-item">
-                            <div class="detail-icon">💧</div>
+                            <div class="detail-icon"><i data-lucide="droplets"></i></div>
                             <div class="detail-value">${current.humidity}%</div>
                             <div class="detail-label">Humidity</div>
                         </div>
                         <div class="detail-item">
-                            <div class="detail-icon">💨</div>
-                            <div class="detail-value">${Math.round(current.wind_kph)}</div>
-                            <div class="detail-label">Wind km/h</div>
+                            <div class="detail-icon"><i data-lucide="wind"></i></div>
+                            <div class="detail-value">${formatWind(current.wind_kph)}</div>
+                            <div class="detail-label">Wind ${getWindUnit()}</div>
                         </div>
                         <div class="detail-item">
-                            <div class="detail-icon">🌡️</div>
-                            <div class="detail-value">${Math.round(current.feelslike_c)}°</div>
+                            <div class="detail-icon"><i data-lucide="thermometer"></i></div>
+                            <div class="detail-value">${formatTemp(current.feelslike_c, false)}°</div>
                             <div class="detail-label">Feels Like</div>
                         </div>
                     </div>
@@ -683,26 +811,26 @@
                 <!-- Today's High/Low -->
                 <div class="today-highlow">
                     <div class="highlow-item">
-                        <span class="highlow-icon high">↑</span>
+                        <span class="highlow-icon high"><i data-lucide="arrow-up"></i></span>
                         <div>
-                            <div class="highlow-temp">${Math.round(today.day.maxtemp_c)}°C</div>
+                            <div class="highlow-temp">${formatTemp(today.day.maxtemp_c)}</div>
                             <div class="highlow-label">High</div>
                         </div>
                     </div>
                     <div class="highlow-item">
-                        <span class="highlow-icon low">↓</span>
+                        <span class="highlow-icon low"><i data-lucide="arrow-down"></i></span>
                         <div>
-                            <div class="highlow-temp">${Math.round(today.day.mintemp_c)}°C</div>
+                            <div class="highlow-temp">${formatTemp(today.day.mintemp_c)}</div>
                             <div class="highlow-label">Low</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- 7-Day Forecast -->
+                <!-- 8-Day Forecast -->
                 <div class="forecast-section">
-                    <h2 class="forecast-header">7-Day Forecast</h2>
+                    <h2 class="forecast-header">8-Day Forecast</h2>
                     <div class="forecast-list">
-                        ${forecast.forecastday.map((day, index) => {
+                        ${forecast.forecastday.slice(0, 8).map((day, index) => {
                             // Parse date without timezone issues
                             const [year, month, dayNum] = day.date.split('-').map(Number);
                             const date = new Date(year, month - 1, dayNum);
@@ -718,8 +846,8 @@
                                     <img class="forecast-icon" src="https:${day.day.condition.icon}" alt="${day.day.condition.text}">
                                     <div class="forecast-condition">${day.day.condition.text}</div>
                                     <div class="forecast-temps">
-                                        <div class="forecast-high">${Math.round(day.day.maxtemp_c)}°</div>
-                                        <div class="forecast-low">${Math.round(day.day.mintemp_c)}°</div>
+                                        <div class="forecast-high">${formatTemp(day.day.maxtemp_c, false)}°</div>
+                                        <div class="forecast-low">${formatTemp(day.day.mintemp_c, false)}°</div>
                                     </div>
                                 </div>
                             `;
@@ -729,6 +857,9 @@
             `;
 
             document.getElementById('weather-content').innerHTML = html;
+            
+            // Initialize Lucide icons
+            lucide.createIcons();
             
             // Update PVR time display
             updatePVRTime();

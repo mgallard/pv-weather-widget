@@ -1,0 +1,54 @@
+name: Update Weather Data
+
+on:
+  schedule:
+    # Run every 4 hours (6 times per day)
+    # Times in UTC - PVR is UTC-6
+    # 08:00 UTC = 2:00 AM PVR
+    # 12:00 UTC = 6:00 AM PVR
+    # 16:00 UTC = 10:00 AM PVR
+    # 20:00 UTC = 2:00 PM PVR
+    # 00:00 UTC = 6:00 PM PVR
+    # 04:00 UTC = 10:00 PM PVR
+    - cron: '0 0,4,8,12,16,20 * * *'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  update-weather:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fetch Weather Data from WeatherAPI
+        run: |
+          curl -s "https://api.weatherapi.com/v1/forecast.json?key=${{ secrets.WEATHER_API_KEY }}&q=Puerto%20Vallarta,Mexico&days=8&aqi=no" > weather.json
+          
+          # Validate JSON was received
+          if ! jq empty weather.json 2>/dev/null; then
+            echo "Error: Invalid JSON received from API"
+            exit 1
+          fi
+          
+          echo "Weather data fetched successfully"
+          jq '.location.name, .current.temp_c, .current.condition.text' weather.json
+
+      - name: Commit and Push Changes
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          
+          git add weather.json
+          
+          # Only commit if there are changes
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update weather data - $(date -u '+%Y-%m-%d %H:%M UTC')"
+            git push
+            echo "Weather data updated and pushed"
+          fi
