@@ -766,7 +766,7 @@
                     <div class="current-main">
                         <div>
                             <div class="current-temp">
-                                ${formatTemp(current.temp_c, false)}<sup>${unitSymbol}</sup>
+                                ${Math.round(currentUnit === 'imperial' ? celsiusToFahrenheit(current.temp_c) : current.temp_c)}<sup>${unitSymbol}</sup>
                             </div>
                             <!-- Unit Toggle -->
                             <div class="unit-toggle">
@@ -895,20 +895,20 @@
             // Get PVR time
             const timeStr = now.toLocaleTimeString('en-US', timeOptions);
             
-            // Get day of week
+            // Get day of week (abbreviated)
             const dayOfWeek = now.toLocaleDateString('en-US', { 
                 timeZone: 'America/Mexico_City',
-                weekday: 'long' 
+                weekday: 'short' 
             });
             
-            // Get date parts for dd/Month/YYYY format
+            // Get date parts for dd/Month/YYYY format (abbreviated month)
             const day = now.toLocaleDateString('en-US', { 
                 timeZone: 'America/Mexico_City',
                 day: '2-digit' 
             });
             const month = now.toLocaleDateString('en-US', { 
                 timeZone: 'America/Mexico_City',
-                month: 'long' 
+                month: 'short' 
             });
             const year = now.toLocaleDateString('en-US', { 
                 timeZone: 'America/Mexico_City',
