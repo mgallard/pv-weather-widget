@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clima en Puerto Vallarta</title>
+    <!-- Google Fonts: Oswald for headers, Poppins for body -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #007BFF;
+            --light-blue: #5BC0DE;
+            --orange: #FFA500;
+            --yellow: #FFD700;
+            --green: #228B22;
+            --white: #FFFFFF;
+            --light-gray: #f8f9fa;
+            --text-dark: #333;
+            --text-muted: #666;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--white);
+            color: var(--text-dark);
+            min-height: 100vh;
+        }
+
+        .widget-container {
+            max-width: 600px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 20px;
+            background: var(--white);
+        }
+
+        /* Header */
+        .widget-header {
+            text-align: center;
+            padding-bottom: 16px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .widget-header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-blue) 0%, var(--light-blue) 50%, var(--orange) 100%);
+            border-radius: 2px;
+        }
+
+        .widget-header h1 {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.5rem;
+            color: var(--primary-blue);
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .widget-header .location-icon {
+            color: var(--orange);
+            margin-right: 6px;
+        }
+
+        /* PVR DateTime in blue card */
+        .pvr-datetime {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0 16px;
+        }
+
+        .pvr-time-row, .pvr-date-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 4px 0;
+        }
+
+        .pvr-icon {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .pvr-time {
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+
+        .pvr-date {
+            font-size: 0.95rem;
+            opacity: 0.9;
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--light-gray);
+            border-top-color: var(--primary-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 12px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Current Weather */
+        .current-weather {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, #0056b3 100%);
+            border-radius: 16px;
+            padding: 24px 30px;
+            color: var(--white);
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .current-weather::before {
+            content: '';
+            position: absolute;
+            top: -30px;
+            right: -30px;
+            width: 140px;
+            height: 140px;
+            background: var(--yellow);
+            border-radius: 50%;
+            opacity: 0.15;
+        }
+
+        .current-main {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .current-temp {
+            font-size: 4.5rem;
+            font-weight: 300;
+            line-height: 1;
+        }
+
+        .current-temp sup {
+            font-size: 1.8rem;
+            vertical-align: super;
+        }
+
+        /* Unit Toggle - Pill Style */
+        .unit-toggle {
+            display: inline-flex;
+            background: var(--orange);
+            border-radius: 8px;
+            padding: 4px;
+            margin-top: 10px;
+        }
+
+        .unit-btn {
+            background: transparent;
+            border: none;
+            color: white;
+            padding: 6px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .unit-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .unit-btn.active {
+            background: white;
+            color: var(--orange);
+            font-weight: 600;
+        }
+
+        .current-condition {
+            text-align: right;
+        }
+
+        .current-condition img {
+            width: 80px;
+            height: 80px;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+        }
+
+        .current-condition-text {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-top: 4px;
+        }
+
+        .current-details {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .detail-item {
+            text-align: center;
+        }
+
+        .detail-icon {
+            font-size: 1.4rem;
+            margin-bottom: 6px;
+        }
+
+        .detail-value {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .detail-label {
+            font-size: 0.75rem;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Today's High/Low */
+        .today-highlow {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            background: var(--light-gray);
+            border-radius: 12px;
+            padding: 16px 24px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--light-blue);
+        }
+
+        .highlow-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .highlow-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .highlow-icon .lucide {
+            width: 1.5rem;
+            height: 1.5rem;
+            stroke-width: 2.5;
+        }
+
+        .highlow-icon.high {
+            color: var(--orange);
+        }
+
+        .highlow-icon.low {
+            color: var(--light-blue);
+        }
+
+        .highlow-temp {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .highlow-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Forecast Section */
+        .forecast-section {
+            margin-top: 12px;
+        }
+
+        .forecast-header {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.1rem;
+            color: var(--primary-blue);
+            font-weight: 500;
+            margin-bottom: 16px;
+            padding-left: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .forecast-header::before {
+            content: '';
+            width: 4px;
+            height: 18px;
+            background: var(--orange);
+            border-radius: 2px;
+        }
+
+        .forecast-list {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        .forecast-day {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 14px 8px;
+            background: var(--light-gray);
+            border-radius: 12px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-align: center;
+        }
+
+        .forecast-day:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 12px rgba(0,123,255,0.2);
+            background: var(--white);
+            border: 2px solid var(--light-blue);
+        }
+
+        .forecast-day-name {
+            font-family: 'Oswald', sans-serif;
+            font-weight: 500;
+            font-size: 0.95rem;
+            color: var(--text-dark);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .forecast-day-date {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .forecast-icon {
+            width: 48px;
+            height: 48px;
+            margin: 8px 0;
+        }
+
+        .forecast-condition {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            min-height: 28px;
+            display: flex;
+            align-items: center;
+        }
+
+        .forecast-temps {
+            text-align: center;
+        }
+
+        .forecast-high {
+            font-weight: 700;
+            color: var(--orange);
+            font-size: 1.1rem;
+        }
+
+        .forecast-low {
+            color: var(--light-blue);
+            font-size: 0.9rem;
+            margin-top: 2px;
+        }
+
+        /* Footer */
+        .widget-footer {
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 2px solid var(--light-gray);
+            text-align: center;
+        }
+
+        .last-updated {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .powered-by {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+
+        .powered-by a {
+            color: var(--light-blue);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .powered-by a:hover {
+            color: var(--primary-blue);
+        }
+
+        /* Responsive adjustments for tablets */
+        @media (max-width: 620px) {
+            .widget-container {
+                padding: 16px;
+            }
+
+            .forecast-list {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        /* Responsive adjustments for mobile */
+        @media (max-width: 480px) {
+            .widget-container {
+                padding: 14px;
+            }
+
+            .widget-header h1 {
+                font-size: 1.1rem;
+            }
+
+            .current-weather {
+                padding: 18px;
+            }
+
+            .current-temp {
+                font-size: 3.2rem;
+            }
+
+            .current-temp sup {
+                font-size: 1.4rem;
+            }
+
+            .current-condition img {
+                width: 60px;
+                height: 60px;
+            }
+
+            .current-condition-text {
+                font-size: 0.95rem;
+            }
+
+            .pvr-datetime {
+                padding: 0 10px;
+            }
+
+            .pvr-time {
+                font-size: 1rem;
+            }
+
+            .pvr-date {
+                font-size: 0.75rem;
+            }
+
+            .pvr-icon {
+                font-size: 0.9rem;
+            }
+
+            .current-details {
+                gap: 10px;
+            }
+
+            .detail-icon {
+                font-size: 1.2rem;
+            }
+
+            .detail-value {
+                font-size: 1rem;
+            }
+
+            .detail-label {
+                font-size: 0.65rem;
+            }
+
+            .today-highlow {
+                gap: 24px;
+                padding: 12px 16px;
+            }
+
+            .highlow-temp {
+                font-size: 1.1rem;
+            }
+
+            .forecast-header {
+                font-size: 0.9rem;
+            }
+
+            .forecast-list {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+
+            .forecast-day {
+                padding: 12px 10px;
+            }
+
+            .forecast-icon {
+                width: 42px;
+                height: 42px;
+            }
+
+            .forecast-condition {
+                font-size: 0.65rem;
+                min-height: 24px;
+            }
+
+            .forecast-high {
+                font-size: 1rem;
+            }
+
+            .forecast-low {
+                font-size: 0.85rem;
+            }
+        }
+
+        /* Small mobile */
+        @media (max-width: 360px) {
+            .widget-container {
+                padding: 12px;
+            }
+
+            .current-temp {
+                font-size: 2.8rem;
+            }
+
+            .current-condition img {
+                width: 52px;
+                height: 52px;
+            }
+
+            .current-weather::before {
+                width: 80px;
+                height: 80px;
+            }
+
+            .pvr-datetime {
+                padding: 0 6px;
+            }
+
+            .pvr-time {
+                font-size: 0.9rem;
+            }
+
+            .pvr-date {
+                font-size: 0.65rem;
+            }
+
+            .pvr-time-row, .pvr-date-row {
+                gap: 4px;
+            }
+        }
+
+        /* Lucide icon styling */
+        .lucide {
+            width: 1em;
+            height: 1em;
+            vertical-align: middle;
+        }
+
+        .detail-icon .lucide {
+            width: 1.4rem;
+            height: 1.4rem;
+        }
+
+        .pvr-icon .lucide {
+            width: 1.1rem;
+            height: 1.1rem;
+        }
+    </style>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+    <div class="widget-container">
+        <header class="widget-header">
+            <h1><span class="location-icon">📍</span>Clima en Puerto Vallarta</h1>
+        </header>
+
+        <div id="weather-content">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                <p>Cargando datos del clima...</p>
+            </div>
+        </div>
+
+        <footer class="widget-footer">
+            <p class="last-updated" id="last-updated"></p>
+            <p class="powered-by">Desarrollado por <a href="https://www.weatherapi.com/" target="_blank" rel="noopener">WeatherAPI</a></p>
+        </footer>
+    </div>
+
+    <script>
+        // ============================================
+        // CONFIGURACIÓN
+        // ============================================
+        const LOCATION = 'Puerto Vallarta,Mexico';
+        const FORECAST_DAYS = 8;
+        
+        // Preferencia de unidad: 'imperial' (°F) o 'metric' (°C)
+        let currentUnit = localStorage.getItem('weatherUnit') || 'metric';
+        
+        // Almacenar datos del clima globalmente para volver a renderizar al cambiar de unidad
+        let weatherData = null;
+
+        // ============================================
+        // Utilidades de Conversión de Temperatura
+        // ============================================
+        function celsiusToFahrenheit(celsius) {
+            return (celsius * 9/5) + 32;
+        }
+
+        function formatTemp(tempC, showUnit = true) {
+            if (currentUnit === 'imperial') {
+                const tempF = celsiusToFahrenheit(tempC);
+                return showUnit ? `${Math.round(tempF)}°F` : `${Math.round(tempF)}°`;
+            }
+            return showUnit ? `${Math.round(tempC)}°C` : `${Math.round(tempC)}°`;
+        }
+
+        function formatWind(windKph) {
+            if (currentUnit === 'imperial') {
+                const windMph = windKph * 0.621371;
+                return `${Math.round(windMph)}`;
+            }
+            return `${Math.round(windKph)}`;
+        }
+
+        function getWindUnit() {
+            return currentUnit === 'imperial' ? 'mph' : 'km/h';
+        }
+
+        function toggleUnit(unit) {
+            if (unit === currentUnit) return;
+            currentUnit = unit;
+            localStorage.setItem('weatherUnit', unit);
+            if (weatherData) {
+                renderWeather(weatherData);
+            }
+        }
+
+        // ============================================
+        // Obtención de Datos del Clima (desde JSON estático)
+        // ============================================
+        
+        async function fetchWeather() {
+            try {
+                // Intentar obtener del archivo JSON estático (actualizado por GitHub Actions)
+                const response = await fetch('weather.json');
+                
+                if (!response.ok) {
+                    throw new Error('Datos del clima no disponibles');
+                }
+                
+                const data = await response.json();
+                weatherData = data;
+                renderWeather(data);
+            } catch (error) {
+                console.log('Error fetching weather:', error.message);
+                renderError('No se pudieron cargar los datos del clima.');
+            }
+        }
+
+        // ============================================
+        // Funciones de Renderizado
+        // ============================================
+        function renderWeather(data) {
+            const { current, forecast } = data;
+            const today = forecast.forecastday[0];
+            
+            // Símbolo de unidad para mostrar
+            const unitSymbol = currentUnit === 'imperial' ? '°F' : '°C';
+            
+            const html = `
+                <!-- Clima Actual -->
+                <div class="current-weather">
+                    <div class="current-main">
+                        <div>
+                            <div class="current-temp">
+                                ${Math.round(currentUnit === 'imperial' ? celsiusToFahrenheit(current.temp_c) : current.temp_c)}<sup>${unitSymbol}</sup>
+                            </div>
+                            <!-- Cambio de Unidad -->
+                            <div class="unit-toggle">
+                                <button class="unit-btn ${currentUnit === 'imperial' ? 'active' : ''}" onclick="toggleUnit('imperial')">°F</button>
+                                <button class="unit-btn ${currentUnit === 'metric' ? 'active' : ''}" onclick="toggleUnit('metric')">°C</button>
+                            </div>
+                        </div>
+                        <div class="pvr-datetime">
+                            <div class="pvr-time-row">
+                                <span class="pvr-icon"><i data-lucide="clock"></i></span>
+                                <span class="pvr-time" id="pvr-time">--:--</span>
+                            </div>
+                            <div class="pvr-date-row">
+                                <span class="pvr-icon"><i data-lucide="calendar-days"></i></span>
+                                <span class="pvr-date" id="pvr-date">---</span>
+                            </div>
+                        </div>
+                        <div class="current-condition">
+                            <img src="https:${current.condition.icon}" alt="${current.condition.text}">
+                            <div class="current-condition-text">${current.condition.text}</div>
+                        </div>
+                    </div>
+                    <div class="current-details">
+                        <div class="detail-item">
+                            <div class="detail-icon"><i data-lucide="droplets"></i></div>
+                            <div class="detail-value">${current.humidity}%</div>
+                            <div class="detail-label">Humedad</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-icon"><i data-lucide="wind"></i></div>
+                            <div class="detail-value">${formatWind(current.wind_kph)}</div>
+                            <div class="detail-label">Viento ${getWindUnit()}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-icon"><i data-lucide="thermometer"></i></div>
+                            <div class="detail-value">${formatTemp(current.feelslike_c, false)}</div>
+                            <div class="detail-label">Sensación</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Máx/Mín de Hoy -->
+                <div class="today-highlow">
+                    <div class="highlow-item">
+                        <span class="highlow-icon high"><i data-lucide="arrow-up"></i></span>
+                        <div>
+                            <div class="highlow-temp">${formatTemp(today.day.maxtemp_c)}</div>
+                            <div class="highlow-label">Máx</div>
+                        </div>
+                    </div>
+                    <div class="highlow-item">
+                        <span class="highlow-icon low"><i data-lucide="arrow-down"></i></span>
+                        <div>
+                            <div class="highlow-temp">${formatTemp(today.day.mintemp_c)}</div>
+                            <div class="highlow-label">Mín</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pronóstico de 8 Días -->
+                <div class="forecast-section">
+                    <h2 class="forecast-header">Pronóstico de 8 Días</h2>
+                    <div class="forecast-list">
+                        ${forecast.forecastday.slice(0, 8).map((day, index) => {
+                            // Analizar fecha sin problemas de zona horaria
+                            const [year, month, dayNum] = day.date.split('-').map(Number);
+                            const date = new Date(year, month - 1, dayNum);
+                            const dayName = index === 0 ? 'Hoy' : date.toLocaleDateString('es-MX', { weekday: 'short' });
+                            const dateStr = date.toLocaleDateString('es-MX', { month: 'short', day: 'numeric' });
+                            
+                            return `
+                                <div class="forecast-day">
+                                    <div class="forecast-day-name">
+                                        ${dayName}
+                                        <div class="forecast-day-date">${dateStr}</div>
+                                    </div>
+                                    <img class="forecast-icon" src="https:${day.day.condition.icon}" alt="${day.day.condition.text}">
+                                    <div class="forecast-condition">${day.day.condition.text}</div>
+                                    <div class="forecast-temps">
+                                        <div class="forecast-high">${formatTemp(day.day.maxtemp_c, false)}</div>
+                                        <div class="forecast-low">${formatTemp(day.day.mintemp_c, false)}</div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('weather-content').innerHTML = html;
+            
+            // Inicializar iconos Lucide
+            lucide.createIcons();
+            
+            // Actualizar visualización de la hora de PVR
+            updatePVRTime();
+            
+            // Actualizar marca de tiempo
+            const now = new Date();
+            document.getElementById('last-updated').textContent = 
+                `Última actualización: ${now.toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' })}`;
+        }
+
+        function renderError(message) {
+            document.getElementById('weather-content').innerHTML = `
+                <div class="error">
+                    <p>⚠️ ${message}</p>
+                </div>
+            `;
+        }
+
+        // ============================================
+        // Visualización de la Hora de Puerto Vallarta
+        // ============================================
+        function updatePVRTime() {
+            const timeOptions = {
+                timeZone: 'America/Mexico_City',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            };
+            
+            const now = new Date();
+            
+            // Obtener hora de PVR
+            const timeStr = now.toLocaleTimeString('es-MX', timeOptions);
+            
+            // Obtener día de la semana (abreviado)
+            const dayOfWeek = now.toLocaleDateString('es-MX', { 
+                timeZone: 'America/Mexico_City',
+                weekday: 'short' 
+            });
+            
+            // Obtener partes de la fecha para el formato dd/Mes/YYYY (mes abreviado)
+            const day = now.toLocaleDateString('es-MX', { 
+                timeZone: 'America/Mexico_City',
+                day: '2-digit' 
+            });
+            const month = now.toLocaleDateString('es-MX', { 
+                timeZone: 'America/Mexico_City',
+                month: 'short' 
+            });
+            const year = now.toLocaleDateString('es-MX', { 
+                timeZone: 'America/Mexico_City',
+                year: 'numeric' 
+            });
+            
+            const dateStr = `${dayOfWeek}, ${day}/${month}/${year}`;
+            
+            const timeEl = document.getElementById('pvr-time');
+            const dateEl = document.getElementById('pvr-date');
+            
+            if (timeEl) timeEl.textContent = timeStr;
+            if (dateEl) dateEl.textContent = dateStr;
+        }
+
+        // ============================================
+        // Inicializar
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchWeather();
+            updatePVRTime();
+            
+            // Actualizar la hora cada minuto
+            setInterval(updatePVRTime, 60 * 1000);
+            
+            // Actualizar datos del clima cada 30 minutos
+            setInterval(fetchWeather, 30 * 60 * 1000);
+        });
+    </script>
+</body>
+</html>
