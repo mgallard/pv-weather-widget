@@ -24,31 +24,35 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Fetch Weather Data from WeatherAPI
+      - name: Fetch English Weather Data
         run: |
-          curl -s "https://api.weatherapi.com/v1/forecast.json?key=${{ secrets.WEATHER_API_KEY }}&q=Puerto%20Vallarta,Mexico&days=8&aqi=no" > weather.json
+          curl -s "https://api.weatherapi.com/v1/forecast.json?key=${{ secrets.WEATHER_API_KEY }}&q=Puerto%20Vallarta,Mexico&days=8&aqi=no&lang=en" > weather.json
           
-          # Validate JSON was received
           if ! jq empty weather.json 2>/dev/null; then
-            echo "Error: Invalid JSON received from API"
+            echo "Error: Invalid English JSON received"
             exit 1
           fi
+
+      - name: Fetch Spanish Weather Data
+        run: |
+          curl -s "https://api.weatherapi.com/v1/forecast.json?key=${{ secrets.WEATHER_API_KEY }}&q=Puerto%20Vallarta,Mexico&days=8&aqi=no&lang=es" > weather-es.json
           
-          echo "Weather data fetched successfully"
-          jq '.location.name, .current.temp_c, .current.condition.text' weather.json
+          if ! jq empty weather-es.json 2>/dev/null; then
+            echo "Error: Invalid Spanish JSON received"
+            exit 1
+          fi
 
       - name: Commit and Push Changes
         run: |
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
           
-          git add weather.json
+          git add weather.json weather-es.json
           
-          # Only commit if there are changes
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "Update weather data - $(date -u '+%Y-%m-%d %H:%M UTC')"
+            git commit -m "Update weather data (EN/ES) - $(date -u '+%Y-%m-%d %H:%M UTC')"
             git push
             echo "Weather data updated and pushed"
           fi

@@ -666,8 +666,8 @@
         
         async function fetchWeather() {
             try {
-                // Intentar obtener del archivo JSON estático (actualizado por GitHub Actions)
-                const response = await fetch('weather.json');
+                // Intentar obtener del archivo JSON estático en español (actualizado por GitHub Actions)
+                const response = await fetch('weather-es.json');
                 
                 if (!response.ok) {
                     throw new Error('Datos del clima no disponibles');
