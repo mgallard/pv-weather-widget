@@ -24,23 +24,24 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Fetch English Weather Data
+      - name: Fetch Weather Data (Open-Meteo)
         run: |
-          curl -s "https://api.weatherapi.com/v1/forecast.json?key=${{ secrets.WEATHER_API_KEY }}&q=Puerto%20Vallarta,Mexico&days=8&aqi=no&lang=en" > weather.json
+          # Fetch 8 days of forecast data from Open-Meteo
+          # Puerto Vallarta Coordinates: Lat 20.6534, Lon -105.2253
+          # Current: temp, humidity, apparent_temp, weather_code, wind_speed
+          # Daily: weather_code, temp_max, temp_min
+          curl -s "https://api.open-meteo.com/v1/forecast?latitude=20.6534&longitude=-105.2253&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=America%2FMexico_City&forecast_days=8" > weather_openmeteo.json
           
-          if ! jq empty weather.json 2>/dev/null; then
-            echo "Error: Invalid English JSON received"
+          if ! jq empty weather_openmeteo.json 2>/dev/null; then
+            echo "Error: Invalid JSON received from Open-Meteo"
             exit 1
           fi
-
-      - name: Fetch Spanish Weather Data
-        run: |
-          curl -s "https://api.weatherapi.com/v1/forecast.json?key=${{ secrets.WEATHER_API_KEY }}&q=Puerto%20Vallarta,Mexico&days=8&aqi=no&lang=es" > weather-es.json
           
-          if ! jq empty weather-es.json 2>/dev/null; then
-            echo "Error: Invalid Spanish JSON received"
-            exit 1
-          fi
+          # We'll keep the same filenames but use the new data source structure
+          # For compatibility during transition, we overwrite weather.json and weather-es.json
+          # but they will now have Open-Meteo structure.
+          cp weather_openmeteo.json weather.json
+          cp weather_openmeteo.json weather-es.json
 
       - name: Commit and Push Changes
         run: |
@@ -52,7 +53,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "Update weather data (EN/ES) - $(date -u '+%Y-%m-%d %H:%M UTC')"
+            git commit -m "Update weather data (Open-Meteo) - $(date -u '+%Y-%m-%d %H:%M UTC')"
             git push
             echo "Weather data updated and pushed"
           fi

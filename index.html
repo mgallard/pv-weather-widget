@@ -679,50 +679,55 @@
         // Weather Data Fetching (from static JSON)
         // ============================================
         
+        // WMO Weather Codes mapping to descriptions and icons
+        const weatherCodes = {
+            0: { text: 'Clear sky', icon: 'sun' },
+            1: { text: 'Mainly clear', icon: 'sun' },
+            2: { text: 'Partly cloudy', icon: 'cloud-sun' },
+            3: { text: 'Overcast', icon: 'cloud' },
+            45: { text: 'Fog', icon: 'cloud-fog' },
+            48: { text: 'Depositing rime fog', icon: 'cloud-fog' },
+            51: { text: 'Light drizzle', icon: 'cloud-drizzle' },
+            53: { text: 'Moderate drizzle', icon: 'cloud-drizzle' },
+            55: { text: 'Dense drizzle', icon: 'cloud-drizzle' },
+            61: { text: 'Slight rain', icon: 'cloud-rain' },
+            63: { text: 'Moderate rain', icon: 'cloud-rain' },
+            65: { text: 'Heavy rain', icon: 'cloud-rain' },
+            71: { text: 'Slight snow', icon: 'snowflake' },
+            73: { text: 'Moderate snow', icon: 'snowflake' },
+            75: { text: 'Heavy snow', icon: 'snowflake' },
+            77: { text: 'Snow grains', icon: 'snowflake' },
+            80: { text: 'Slight rain showers', icon: 'cloud-rain' },
+            81: { text: 'Moderate rain showers', icon: 'cloud-rain' },
+            82: { text: 'Violent rain showers', icon: 'cloud-rain' },
+            95: { text: 'Thunderstorm', icon: 'cloud-lightning' },
+            96: { text: 'Thunderstorm with slight hail', icon: 'cloud-lightning' },
+            99: { text: 'Thunderstorm with heavy hail', icon: 'cloud-lightning' }
+        };
+
+        function getWeatherInfo(code) {
+            return weatherCodes[code] || { text: 'Unknown', icon: 'cloud' };
+        }
+
         // Demo data for local development/preview
         function getDemoData() {
-            const today = new Date();
-            const days = [];
-            const conditions = [
-                { text: 'Sunny', icon: '//cdn.weatherapi.com/weather/64x64/day/113.png' },
-                { text: 'Partly cloudy', icon: '//cdn.weatherapi.com/weather/64x64/day/116.png' },
-                { text: 'Cloudy', icon: '//cdn.weatherapi.com/weather/64x64/day/119.png' },
-                { text: 'Light rain', icon: '//cdn.weatherapi.com/weather/64x64/day/296.png' },
-                { text: 'Sunny', icon: '//cdn.weatherapi.com/weather/64x64/day/113.png' },
-                { text: 'Partly cloudy', icon: '//cdn.weatherapi.com/weather/64x64/day/116.png' },
-                { text: 'Sunny', icon: '//cdn.weatherapi.com/weather/64x64/day/113.png' },
-                { text: 'Partly cloudy', icon: '//cdn.weatherapi.com/weather/64x64/day/116.png' }
-            ];
-            
-            for (let i = 0; i < 8; i++) {
-                const date = new Date(today);
-                date.setDate(today.getDate() + i);
-                days.push({
-                    date: date.toISOString().split('T')[0],
-                    day: {
-                        maxtemp_c: 28 + Math.floor(Math.random() * 6),
-                        mintemp_c: 20 + Math.floor(Math.random() * 4),
-                        condition: conditions[i]
-                    }
-                });
-            }
-            
             return {
                 current: {
-                    temp_c: 29,
-                    temp_f: 84,
-                    humidity: 72,
-                    wind_kph: 15,
-                    wind_mph: 9,
-                    feelslike_c: 32,
-                    feelslike_f: 90,
-                    condition: {
-                        text: 'Sunny',
-                        icon: '//cdn.weatherapi.com/weather/64x64/day/113.png'
-                    }
+                    temperature_2m: 29,
+                    relative_humidity_2m: 72,
+                    wind_speed_10m: 15,
+                    apparent_temperature: 32,
+                    weather_code: 0
                 },
-                forecast: {
-                    forecastday: days
+                daily: {
+                    time: Array.from({length: 8}, (_, i) => {
+                        const d = new Date();
+                        d.setDate(d.getDate() + i);
+                        return d.toISOString().split('T')[0];
+                    }),
+                    weather_code: [0, 1, 2, 61, 0, 1, 0, 2],
+                    temperature_2m_max: [31, 32, 30, 28, 31, 32, 33, 31],
+                    temperature_2m_min: [22, 23, 21, 20, 22, 23, 24, 22]
                 }
             };
         }
@@ -754,11 +759,11 @@
         // Render Functions
         // ============================================
         function renderWeather(data) {
-            const { current, forecast } = data;
-            const today = forecast.forecastday[0];
+            const { current, daily } = data;
             
             // Get unit symbol for display
             const unitSymbol = currentUnit === 'imperial' ? '°F' : '°C';
+            const currentCondition = getWeatherInfo(current.weather_code);
             
             const html = `
                 <!-- Current Weather -->
@@ -766,7 +771,7 @@
                     <div class="current-main">
                         <div>
                             <div class="current-temp">
-                                ${Math.round(currentUnit === 'imperial' ? celsiusToFahrenheit(current.temp_c) : current.temp_c)}<sup>${unitSymbol}</sup>
+                                ${Math.round(currentUnit === 'imperial' ? celsiusToFahrenheit(current.temperature_2m) : current.temperature_2m)}<sup>${unitSymbol}</sup>
                             </div>
                             <!-- Unit Toggle -->
                             <div class="unit-toggle">
@@ -785,24 +790,26 @@
                             </div>
                         </div>
                         <div class="current-condition">
-                            <img src="https:${current.condition.icon}" alt="${current.condition.text}">
-                            <div class="current-condition-text">${current.condition.text}</div>
+                            <div class="current-condition-icon">
+                                <i data-lucide="${currentCondition.icon}" style="width: 80px; height: 80px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));"></i>
+                            </div>
+                            <div class="current-condition-text">${currentCondition.text}</div>
                         </div>
                     </div>
                     <div class="current-details">
                         <div class="detail-item">
                             <div class="detail-icon"><i data-lucide="droplets"></i></div>
-                            <div class="detail-value">${current.humidity}%</div>
+                            <div class="detail-value">${current.relative_humidity_2m}%</div>
                             <div class="detail-label">Humidity</div>
                         </div>
                         <div class="detail-item">
                             <div class="detail-icon"><i data-lucide="wind"></i></div>
-                            <div class="detail-value">${formatWind(current.wind_kph)}</div>
+                            <div class="detail-value">${formatWind(current.wind_speed_10m)}</div>
                             <div class="detail-label">Wind ${getWindUnit()}</div>
                         </div>
                         <div class="detail-item">
                             <div class="detail-icon"><i data-lucide="thermometer"></i></div>
-                            <div class="detail-value">${formatTemp(current.feelslike_c, false)}</div>
+                            <div class="detail-value">${formatTemp(current.apparent_temperature, false)}</div>
                             <div class="detail-label">Feels Like</div>
                         </div>
                     </div>
@@ -813,14 +820,14 @@
                     <div class="highlow-item">
                         <span class="highlow-icon high"><i data-lucide="arrow-up"></i></span>
                         <div>
-                            <div class="highlow-temp">${formatTemp(today.day.maxtemp_c)}</div>
+                            <div class="highlow-temp">${formatTemp(daily.temperature_2m_max[0])}</div>
                             <div class="highlow-label">High</div>
                         </div>
                     </div>
                     <div class="highlow-item">
                         <span class="highlow-icon low"><i data-lucide="arrow-down"></i></span>
                         <div>
-                            <div class="highlow-temp">${formatTemp(today.day.mintemp_c)}</div>
+                            <div class="highlow-temp">${formatTemp(daily.temperature_2m_min[0])}</div>
                             <div class="highlow-label">Low</div>
                         </div>
                     </div>
@@ -830,12 +837,13 @@
                 <div class="forecast-section">
                     <h2 class="forecast-header">8-Day Forecast</h2>
                     <div class="forecast-list">
-                        ${forecast.forecastday.slice(0, 8).map((day, index) => {
+                        ${daily.time.map((time, index) => {
                             // Parse date without timezone issues
-                            const [year, month, dayNum] = day.date.split('-').map(Number);
+                            const [year, month, dayNum] = time.split('-').map(Number);
                             const date = new Date(year, month - 1, dayNum);
                             const dayName = index === 0 ? 'Today' : date.toLocaleDateString('en-US', { weekday: 'short' });
                             const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                            const condition = getWeatherInfo(daily.weather_code[index]);
                             
                             return `
                                 <div class="forecast-day">
@@ -843,11 +851,13 @@
                                         ${dayName}
                                         <div class="forecast-day-date">${dateStr}</div>
                                     </div>
-                                    <img class="forecast-icon" src="https:${day.day.condition.icon}" alt="${day.day.condition.text}">
-                                    <div class="forecast-condition">${day.day.condition.text}</div>
+                                    <div class="forecast-icon">
+                                        <i data-lucide="${condition.icon}" style="width: 48px; height: 48px; margin: 8px 0; color: var(--primary-blue);"></i>
+                                    </div>
+                                    <div class="forecast-condition">${condition.text}</div>
                                     <div class="forecast-temps">
-                                        <div class="forecast-high">${formatTemp(day.day.maxtemp_c, false)}</div>
-                                        <div class="forecast-low">${formatTemp(day.day.mintemp_c, false)}</div>
+                                        <div class="forecast-high">${formatTemp(daily.temperature_2m_max[index], false)}</div>
+                                        <div class="forecast-low">${formatTemp(daily.temperature_2m_min[index], false)}</div>
                                     </div>
                                 </div>
                             `;

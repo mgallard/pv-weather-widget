@@ -664,6 +664,36 @@
         // Obtención de Datos del Clima (desde JSON estático)
         // ============================================
         
+        // Mapeo de Códigos de Clima WMO a descripciones e iconos
+        const weatherCodes = {
+            0: { text: 'Cielo despejado', icon: 'sun' },
+            1: { text: 'Principalmente despejado', icon: 'sun' },
+            2: { text: 'Parcialmente nublado', icon: 'cloud-sun' },
+            3: { text: 'Nublado', icon: 'cloud' },
+            45: { text: 'Niebla', icon: 'cloud-fog' },
+            48: { text: 'Niebla con escarcha', icon: 'cloud-fog' },
+            51: { text: 'Llovizna ligera', icon: 'cloud-drizzle' },
+            53: { text: 'Llovizna moderada', icon: 'cloud-drizzle' },
+            55: { text: 'Llovizna densa', icon: 'cloud-drizzle' },
+            61: { text: 'Lluvia ligera', icon: 'cloud-rain' },
+            63: { text: 'Lluvia moderada', icon: 'cloud-rain' },
+            65: { text: 'Lluvia fuerte', icon: 'cloud-rain' },
+            71: { text: 'Nieve ligera', icon: 'snowflake' },
+            73: { text: 'Nieve moderada', icon: 'snowflake' },
+            75: { text: 'Nieve fuerte', icon: 'snowflake' },
+            77: { text: 'Granos de nieve', icon: 'snowflake' },
+            80: { text: 'Chubascos de lluvia ligeros', icon: 'cloud-rain' },
+            81: { text: 'Chubascos de lluvia moderados', icon: 'cloud-rain' },
+            82: { text: 'Chubascos de lluvia violentos', icon: 'cloud-rain' },
+            95: { text: 'Tormenta eléctrica', icon: 'cloud-lightning' },
+            96: { text: 'Tormenta con granizo ligero', icon: 'cloud-lightning' },
+            99: { text: 'Tormenta con granizo fuerte', icon: 'cloud-lightning' }
+        };
+
+        function getWeatherInfo(code) {
+            return weatherCodes[code] || { text: 'Desconocido', icon: 'cloud' };
+        }
+
         async function fetchWeather() {
             try {
                 // Intentar obtener del archivo JSON estático en español (actualizado por GitHub Actions)
@@ -686,11 +716,11 @@
         // Funciones de Renderizado
         // ============================================
         function renderWeather(data) {
-            const { current, forecast } = data;
-            const today = forecast.forecastday[0];
+            const { current, daily } = data;
             
             // Símbolo de unidad para mostrar
             const unitSymbol = currentUnit === 'imperial' ? '°F' : '°C';
+            const currentCondition = getWeatherInfo(current.weather_code);
             
             const html = `
                 <!-- Clima Actual -->
@@ -698,7 +728,7 @@
                     <div class="current-main">
                         <div>
                             <div class="current-temp">
-                                ${Math.round(currentUnit === 'imperial' ? celsiusToFahrenheit(current.temp_c) : current.temp_c)}<sup>${unitSymbol}</sup>
+                                ${Math.round(currentUnit === 'imperial' ? celsiusToFahrenheit(current.temperature_2m) : current.temperature_2m)}<sup>${unitSymbol}</sup>
                             </div>
                             <!-- Cambio de Unidad -->
                             <div class="unit-toggle">
@@ -717,24 +747,26 @@
                             </div>
                         </div>
                         <div class="current-condition">
-                            <img src="https:${current.condition.icon}" alt="${current.condition.text}">
-                            <div class="current-condition-text">${current.condition.text}</div>
+                            <div class="current-condition-icon">
+                                <i data-lucide="${currentCondition.icon}" style="width: 80px; height: 80px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));"></i>
+                            </div>
+                            <div class="current-condition-text">${currentCondition.text}</div>
                         </div>
                     </div>
                     <div class="current-details">
                         <div class="detail-item">
                             <div class="detail-icon"><i data-lucide="droplets"></i></div>
-                            <div class="detail-value">${current.humidity}%</div>
+                            <div class="detail-value">${current.relative_humidity_2m}%</div>
                             <div class="detail-label">Humedad</div>
                         </div>
                         <div class="detail-item">
                             <div class="detail-icon"><i data-lucide="wind"></i></div>
-                            <div class="detail-value">${formatWind(current.wind_kph)}</div>
+                            <div class="detail-value">${formatWind(current.wind_speed_10m)}</div>
                             <div class="detail-label">Viento ${getWindUnit()}</div>
                         </div>
                         <div class="detail-item">
                             <div class="detail-icon"><i data-lucide="thermometer"></i></div>
-                            <div class="detail-value">${formatTemp(current.feelslike_c, false)}</div>
+                            <div class="detail-value">${formatTemp(current.apparent_temperature, false)}</div>
                             <div class="detail-label">Sensación</div>
                         </div>
                     </div>
@@ -745,14 +777,14 @@
                     <div class="highlow-item">
                         <span class="highlow-icon high"><i data-lucide="arrow-up"></i></span>
                         <div>
-                            <div class="highlow-temp">${formatTemp(today.day.maxtemp_c)}</div>
+                            <div class="highlow-temp">${formatTemp(daily.temperature_2m_max[0])}</div>
                             <div class="highlow-label">Máx</div>
                         </div>
                     </div>
                     <div class="highlow-item">
                         <span class="highlow-icon low"><i data-lucide="arrow-down"></i></span>
                         <div>
-                            <div class="highlow-temp">${formatTemp(today.day.mintemp_c)}</div>
+                            <div class="highlow-temp">${formatTemp(daily.temperature_2m_min[0])}</div>
                             <div class="highlow-label">Mín</div>
                         </div>
                     </div>
@@ -762,12 +794,13 @@
                 <div class="forecast-section">
                     <h2 class="forecast-header">Pronóstico de 8 Días</h2>
                     <div class="forecast-list">
-                        ${forecast.forecastday.slice(0, 8).map((day, index) => {
+                        ${daily.time.map((time, index) => {
                             // Analizar fecha sin problemas de zona horaria
-                            const [year, month, dayNum] = day.date.split('-').map(Number);
+                            const [year, month, dayNum] = time.split('-').map(Number);
                             const date = new Date(year, month - 1, dayNum);
                             const dayName = index === 0 ? 'Hoy' : date.toLocaleDateString('es-MX', { weekday: 'short' });
                             const dateStr = date.toLocaleDateString('es-MX', { month: 'short', day: 'numeric' });
+                            const condition = getWeatherInfo(daily.weather_code[index]);
                             
                             return `
                                 <div class="forecast-day">
@@ -775,11 +808,13 @@
                                         ${dayName}
                                         <div class="forecast-day-date">${dateStr}</div>
                                     </div>
-                                    <img class="forecast-icon" src="https:${day.day.condition.icon}" alt="${day.day.condition.text}">
-                                    <div class="forecast-condition">${day.day.condition.text}</div>
+                                    <div class="forecast-icon">
+                                        <i data-lucide="${condition.icon}" style="width: 48px; height: 48px; margin: 8px 0; color: var(--primary-blue);"></i>
+                                    </div>
+                                    <div class="forecast-condition">${condition.text}</div>
                                     <div class="forecast-temps">
-                                        <div class="forecast-high">${formatTemp(day.day.maxtemp_c, false)}</div>
-                                        <div class="forecast-low">${formatTemp(day.day.mintemp_c, false)}</div>
+                                        <div class="forecast-high">${formatTemp(daily.temperature_2m_max[index], false)}</div>
+                                        <div class="forecast-low">${formatTemp(daily.temperature_2m_min[index], false)}</div>
                                     </div>
                                 </div>
                             `;
